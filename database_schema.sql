@@ -1,6 +1,5 @@
 DROP DATABASE IF EXISTS ecommerce_db;
 CREATE DATABASE ecommerce_db;
-USE ecommerce_db;
 
 -- Create ENUM type for orders status
 CREATE TYPE payment_status_enums AS ENUM ('pending', 'paid', 'refunded', 'cancelled');
@@ -43,7 +42,6 @@ CREATE TABLE Categories (
     parent_category_id INT DEFAULT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     
-    CONSTRAINT check_duplicate_name CHECK (c)
     CONSTRAINT fk_parent_category_id FOREIGN KEY(parent_category_id) REFERENCES Categories(category_id),
     CONSTRAINT check_parent_category CHECK (parent_category_id is NULL OR parent_category_id <> category_id) -- is it a top level (NULL) or if not then is it correctly linked otherwise error
 );
@@ -94,7 +92,8 @@ CREATE TABLE Order_products(
     order_id    INT NOT NULL,
     product_id  INT NOT NULL,
     quantity    INT NOT NULL,
-    order_total Decimal(10,2) NOT NULL,
+    unit_price Decimal(10,2) NOT NULL,
+    discount   Decimal(10,2) NOT NULL DEFAULT 0,
 
     CONSTRAINT check_empty_order_item CHECK (quantity > 0),
     CONSTRAINT fk_order_id FOREIGN KEY (order_id) REFERENCES orders(order_id) ,
@@ -128,7 +127,7 @@ CREATE TABLE saved_addresses(
 CREATE TABLE customer_addresses(
     customer_id INT NOT NULL,
     saved_address_id INT NOT NULL,
-    address_types_enums NOT NULL DEFAULT 'home',
+    address_type address_types_enums NOT NULL DEFAULT 'home',
     PRIMARY KEY(customer_id, saved_address_id), --no duplicate adderess and customer combination for types
 
     CONSTRAINT fk_customer FOREIGN KEY (customer_id) REFERENCES customers(customer_id), --ON DELETE CASCADE,
@@ -141,13 +140,13 @@ CREATE TABLE customer_addresses(
 INSERT INTO Customers (first_name, last_name, email, phone)
 VALUES 
   ('John', 'Doe', 'john.doe@example.com', '555-1234'),
-  ('Jane', 'Smith', 'jane.smith@example.com', '555-5678'),
+  ('Jane', 'Smith', 'jane.doe@example.com', '555-5678'),
   ('Alice', 'Johnson', 'alice.johnson@example.com', '555-9012');
 
 --Categories Table
 INSERT INTO Categories (name, description, parent_category_id, is_active)
 VALUES
-    ('Computers', 'Laptops, desktops, and gaming PCs for every need.', NULL, TRUE);
+    ('Computers', 'Laptops, desktops, and gaming PCs for every need.', NULL, TRUE),
     ('Phones', 'All mobile phones and smartphones', NULL, TRUE),
     ('Accessories', 'Electronics accessories like cables, chargers, and more.', NULL, TRUE);
 
@@ -162,37 +161,40 @@ VALUES
 --Products
 INSERT INTO Products (category_id, name, description, stock, is_active, price)
 VALUES 
-    (4, 'Lenovo Thinkpad T14s', 'Every day work laptop that never dies!' , 73 , TRUE, 950.00),
+    (4, 'Lenovo Thinkpad T14s', 'Every day work laptop that never dies!' , 73 , TRUE, 1499.99),
     (5, 'Apple charger', 'usb-c apple charger and cable', 999999.99, TRUE, 999.43),
-    (6,'HDMI', 'HDMI cables.', 100, TRUE),
-    (7, 'Mobile devices with advanced computing capabilities', 100, TRUE, 2000.00);
+    (6,'HDMI', 'HDMI cables.', 300, 5.95, TRUE),
+    (7, 'smartphones','Mobile devices with advanced computing capabilities', 100, TRUE, 600.50);
 
 --Order_addresses
 INSERT INTO Order_addresses (order_address_id, street, suburb, city, state, postcode)
 VALUES 
     (1, '123 Fake st', 'Downtown', 'Sydney', 'NSW', '2000' ),
-    (2, '123 Real st', 'Uptown', 'Melbourne', 'VIC', '3000' );
+    (2, '123 Real st', 'Uptown', 'Melbourne', 'VIC', '3000' ),
+    (3, '6 Living st', 'Newtown', 'Melbourne', 'VIC', '3000' );
 
 
 --Orders
-insert into Orders(customer_id, order_address_id)
+insert into Orders(customer_id, order_address_id, status)
 VALUES
-    (1,1,'shipped'),
-    (2,2); -- 123 Real st - order for Jane - Pending
+    (1,1,'shipped'), --john Doe - shipped order
+    (2,1, DEFAULT) -- 123 Real st - order for Jane - Pending
+    (3, 3, DEFAULT ); --Jane Smith - pending order
+
 
 --Order_products
-INSERT INTO Order_products(order_id,product_id, quantity, order_total)
+INSERT INTO Order_products(order_id,product_id, quantity, unit_price, discount)
 VALUES 
-    (1,1,1,499.99), 
-    (1, 3, 5, 5.95),
-    (2, 4, 2, 600.50);
+    (1,1,1,1499.99, 50), -- order item for order with id 1 - Lenovo laptop, 50 discount applied at aplpication layer
+    (1, 3, 5, 5.95, DEFAULT),
+    (2, 4, 2, 600.50, DEFAULT);
 
 --Order Payemnts
 INSERT INTO order_payments (order_id, payment_method, payment_status, amount_paid)
 VALUES
-  (1, 'Credit Card', 'Completed', 1059.97), --John
-  (2, 'PayPal', 'Completed', 1139.98),  -- Jane 
-  (3, 'Credit Card', 'Completed', 649.98);   --Alice
+  (1, 'Credit Card', 'paid', 1499.99), --John
+  (2, 'PayPal', 'paid', 29.75),  -- Jane 
+  (3, 'Credit Card', 'pending', 300.98);   --Alice
 
 --Saved_addresses
 INSERT INTO saved_addresses (street, suburb, city, state, postcode)
@@ -207,4 +209,5 @@ VALUES
   (3, 2, 'billing');    
 
 
-
+-- Queries-- 
+Select customer.customer_id
