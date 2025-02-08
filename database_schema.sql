@@ -39,8 +39,8 @@ CREATE TABLE Categories (
     name varchar(100) NOt NULL,
     description TEXT,
     parent_category_id INT DEFAULT NULL,
-    is_active BOOLEAN DEFAULT TRUE 
-    --CONSTRAINT  FOREIGN KEY() REFERENCES TABLE?()
+    is_active BOOLEAN DEFAULT TRUE,
+    CONSTRAINT fk_parent_category_id FOREIGN KEY(parent_category_id) REFERENCES Categories(category_id),
     CONSTRAINT check_parent_category CHECK (parent_category_id is NULL OR parent_category_id <> category_id) -- is it a top level (NULL) or if not then is it correctly linked otherwise error
 );
 
@@ -49,7 +49,7 @@ CREATE TABLE Order_addresses(
     street      VARCHAR(100) NOT NULL,
     suburb      VARCHAR(100) NOT NULL,
     city        VARCHAR(100) NOT NULL,
-    state       VARCHAR(100) NOT NULL,
+    state       VARCHAR(100) NOT NULL
 );
 
 CREATE TABLE Orders(
@@ -100,25 +100,15 @@ CREATE TABLE order_payments(
     transaction_id  SERIAL PRIMARY KEY,
     payment_method  varchar(50) NOT NULL, -- Enums ? ? 
     payment_status  VARCHAR(20) NOT NULL, --enums ? 
-    amount_paid Decimal(10,2) NOT NULL
+    amount_paid Decimal(10,2) NOT NULL,
 
     CONSTRAINT fk_order_id FOREIGN KEY (order_id) REFERENCES Orders(order_id)
-)
+);
 
 CREATE TRIGGER set_updated_at_trigger
 BEFORE UPDATE ON Products
 FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
-
-CREATE TABLE customer_addresses(
-    customer_id INT NOT NULL,
-    saved_address_id INT NOT NULL,
-    address_type_ENUM NOT NULL DEFAULT 'home'
-    PRIMARY KEY(customer_id, saved_address_id), --no duplicate adderess and customer combination for types
-
-    CONSTRAINT fk_customer FOREIGN KEY (customer_id) REFERENCES customers(customer_id) --ON DELETE CASCADE,
-    CONSTRAINT fk_saved_address FOREIGN KEY (saved_address_id) REFERENCES saved_addresses(saved_address_id) --ON DELETE CASCADE
-);
 
 CREATE TABLE saved_addresses(
     saved_address_id SERIAL PRIMARY KEY,
@@ -127,4 +117,15 @@ CREATE TABLE saved_addresses(
     city        VARCHAR(100) NOT NULL,
     state       VARCHAR(100) NOT NULL,
     postcode    varchar(4)
-)
+);
+
+CREATE TABLE customer_addresses(
+    customer_id INT NOT NULL,
+    saved_address_id INT NOT NULL,
+    address_types_enums NOT NULL DEFAULT 'home',
+    PRIMARY KEY(customer_id, saved_address_id), --no duplicate adderess and customer combination for types
+
+    CONSTRAINT fk_customer FOREIGN KEY (customer_id) REFERENCES customers(customer_id), --ON DELETE CASCADE,
+    CONSTRAINT fk_saved_address FOREIGN KEY (saved_address_id) REFERENCES saved_addresses(saved_address_id) --ON DELETE CASCADE
+);
+
