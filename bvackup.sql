@@ -98,11 +98,11 @@ CREATE TABLE Order_products(
 );
 
 CREATE TABLE order_payments(
-    order_id    INT NOT NULL UNIQUE,
+    transaction_id  SERIAL PRIMARY KEY,
     payment_method  varchar(50) NOT NULL,
     payment_status  payment_status_enums NOT NULL DEFAULT 'pending', 
     amount_paid Decimal(10,2) NOT NULL,
-   
+    order_id    INT NOT NULL,
 
     CONSTRAINT fk_order_id FOREIGN KEY (order_id) REFERENCES Orders(order_id)
 );
